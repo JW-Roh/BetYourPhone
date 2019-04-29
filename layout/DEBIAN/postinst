@@ -1,0 +1,8 @@
+#!/bin/bash
+killall BetYourPhone
+wait
+chown 0:0 /Applications/BetYourPhone.app
+chown 0:0 /Applications/BetYourPhone.app/BetYourPhone
+chmod +s /Applications/BetYourPhone.app/BetYourPhone
+echo "postinst credit: @MidnightChip"
+su -c uicache mobile
