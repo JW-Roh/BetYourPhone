@@ -1,0 +1,8 @@
+Package: com.peterdev.betyourphone
+Name: BetYourPhone
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: An awesome application!
+Maintainer: PeterDev <djperter@icloud.com>
+Author: PeterDev <djperter@icloud.com
+Section: Utilities

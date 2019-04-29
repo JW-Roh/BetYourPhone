@@ -1,0 +1,8 @@
+/.theos
+obj
+.DS_Store
+/packages
+app/Build/
+app/Index/
+app/xcuserdata/
+app/.DS_Store

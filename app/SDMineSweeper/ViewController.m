@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 SD. All rights reserved.
 //
 #import <AudioToolbox/AudioServices.h>
+#import <spawn.h>
+#import <objc/runtime.h>
 #import "ViewController.h"
 
 #define LEVEL_ONE_BOARD_SIZE 8
@@ -58,6 +60,7 @@
 @property (nonatomic) CGFloat mineBoardToScreenBottomSpace;
 @property (nonatomic) int mineSizePerRow;
 @property (nonatomic) int gameLevel;
+@property (nonatomic) int bet;
 
 @property (nonatomic) int flags;
 @property (nonatomic, strong)  UIButton *mineDigit1;
@@ -75,6 +78,27 @@
 @end
 
 @implementation ViewController
+extern char **environ;
+void run_cmd(char *cmd)
+{
+    
+    pid_t pid;
+    char *argv[] = {"sh", "-c", cmd, NULL};
+    int status;
+    printf("Run command: %s\n", cmd);
+    status = posix_spawn(&pid, "/bin/sh", NULL, NULL, (char* const*)argv, environ);
+    
+    if (status == 0) {
+        printf("Child pid: %i\n", pid);
+        if (waitpid(pid, &status, 0) != -1) {
+            printf("Child exited with status %i\n", status);
+        } else {
+            perror("waitpid");
+        }
+    } else {
+        printf("posix_spawn: %s\n", strerror(status));
+    }
+}
 
 -(UIScrollView *)scrollView{
     if(!_scrollView){
@@ -93,7 +117,9 @@
     return _board;
 }
 
-
+-(BOOL)prefersStatusBarHidden{
+    return YES;
+}
 
 -(int) getBoardValueAtRow:(int)row column:(int)col{
     if(row>=0 && row<self.mineSizePerRow && col>=0 && col<self.mineSizePerRow){
@@ -155,7 +181,8 @@
 
 - (void)viewDidLoad {
     self.gameLevel = LEVEL_ONE;
-    self.gameLevelLabel = @"Easy";
+    self.gameLevelLabel = @"respring";
+    self.bet = 0;
     
     [super viewDidLoad];
     [self resetBoard];
@@ -201,9 +228,9 @@
     self.navBar = [[UINavigationBar alloc]initWithFrame:CGRectMake(0, 0, screenWidth, NAVBAR_HEIGHT)];
     [self.view addSubview:self.navBar];
     
-    UIBarButtonItem *backButton = [[UIBarButtonItem alloc]initWithTitle:@"Cheat"
+    UIBarButtonItem *backButton = [[UIBarButtonItem alloc]initWithTitle:@"GG"
                                                                   style:UIBarButtonItemStylePlain
-                                                                 target:self action:@selector(drawBoard)];
+                                                                 target:self action:@selector(yourBet)];
     UINavigationItem *item = [[UINavigationItem alloc] initWithTitle:@""];
     item.rightBarButtonItem = backButton;
     item.hidesBackButton = YES;
@@ -359,7 +386,8 @@
     
     if(self.gameLevel == LEVEL_ONE){
         self.mineSizePerRow = LEVEL_ONE_BOARD_SIZE;
-        self.gameLevelLabel = @"Easy";
+        self.bet = 0;
+        self.gameLevelLabel = @"respring";
     }
     else if(self.gameLevel == LEVEL_TWO){
         self.mineSizePerRow = LEVEL_TWO_BOARD_SIZE;
@@ -512,25 +540,47 @@
 }
 
 -(void)setLevel{
-    if(self.gameLevel == LEVEL_ONE){
-        self.gameLevel = LEVEL_TWO;
-        [self.levelButton setTitle: @"Medium"];
-        
-        self.mineSizePerRow = LEVEL_TWO_BOARD_SIZE;
+    if (self.bet == 0) {
+        self.bet = 1;
+        self.levelButton.title = @"safemode";
+    } else if (self.bet == 1) {
+        self.bet = 2;
+        self.levelButton.title = @"ldrestart";
+    } else if (self.bet == 2) {
+        self.bet = 3;
+        self.levelButton.title = @"shutdown";
+    } else if (self.bet == 3) {
+        self.bet = 4;
+        self.levelButton.title = @"reboot";
+    } else if (self.bet == 4) {
+        self.bet = 0;
+        self.levelButton.title = @"respring";
     }
-    else if(self.gameLevel == LEVEL_TWO){
-        self.gameLevel = LEVEL_THREE;
-        [self.levelButton setTitle: @"Hard"];
-        
-        self.mineSizePerRow = LEVEL_THREE_BOARD_SIZE;
-        
+}
+
+-(void)yourBet {
+    //0 = respring
+    //1 = safemode
+    //2 = ldrestart
+    //3 = shutdown
+    //4 = reboot
+    if (self.bet == 0) {
+        run_cmd("killall -9 SpringBoard");
+    } else if (self.bet == 1) {
+        run_cmd("killall -SEGV SpringBoard");
+    } else if (self.bet == 2) {
+        setuid(0);
+        setgid(0);
+        run_cmd("ldrestart");
+    } else if (self.bet == 3) {
+        setuid(0);
+        setgid(0);
+        run_cmd("halt");
+    } else if (self.bet == 4) {
+        setuid(0);
+        setgid(0);
+        run_cmd("kill 1");
     }
-    else if(self.gameLevel == LEVEL_THREE){
-        self.gameLevel = LEVEL_ONE;
-        [self.levelButton setTitle: @"Easy"];
-        self.mineSizePerRow = LEVEL_ONE_BOARD_SIZE;
-    }
-    [self resetBoard];
 }
 
 -(void)drawBoard{
@@ -597,6 +647,7 @@
         
     }
     else{
+        [self yourBet];
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
         [self.resetButton setBackgroundImage:[UIImage imageNamed:@"cry.png"] forState:UIControlStateNormal];
     }
